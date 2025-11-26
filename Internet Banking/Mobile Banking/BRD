@@ -1,0 +1,104 @@
+Business Specification: Mobile Faster Payments
+Project Name: Mobile Instant Transfers (RTP) Platform: iOS & Android (Native) Version: 1.0 Status: Draft
+
+1. Executive Summary
+To enable retail customers to initiate Single Immediate Payments (SIP) directly from their mobile device. The feature leverages native device capabilities (Biometrics, Push Notifications) to provide a secure, frictionless payment experience with settlement in under 15 seconds.
+
+2. Scope
+In Scope:
+
+One-off domestic payments (Person-to-Person/Business).
+
+Biometric Authentication (FaceID / TouchID / Android Biometrics) for transaction signing.
+
+Payee Management: Add new, save existing, and delete payees.
+
+Confirmation of Payee (CoP): Name checking overlay.
+
+Share Receipt: Native OS "Share Sheet" integration (PDF/Image).
+
+Out of Scope:
+
+Bulk payments / Batch processing.
+
+International payments (SWIFT/SEPA).
+
+Standing Order management (view only, not creation).
+
+3. Functional Requirements
+3.1. Payment Initiation
+Entry Point: "Pay" floating action button (FAB) or dedicated tab on the bottom navigation bar.
+
+Source Account: Carousel view of available accounts. User swipes to select the debiting account.
+
+Recent Payees: Display a horizontal scroll list of the top 5 most frequent payees for "1-tap" selection.
+
+3.2. New Payee Setup
+Input Fields: Name, Sort Code, Account Number, Reference.
+
+Keypad: App must trigger the numeric keypad automatically for Sort Code and Account Number fields to reduce user error.
+
+Validation: Local validation (RegEx) to ensure 6-digit Sort Code and 8-digit Account Number before enabling the "Continue" button.
+
+3.3. Confirmation of Payee (CoP)
+Execution: Upon tapping "Continue," the app initiates an API call to validate the account name.
+
+UI Feedback:
+
+Match: Green checkmark icon next to the payee name.
+
+No Match/Close Match: A modal bottom-sheet warns the user. The "Confirm" button is disabled for 3 seconds to force reading the warning.
+
+3.4. Transaction Signing (SCA)
+Constraint: Use Native Biometrics instead of SMS OTP for a faster flow.
+
+Fallback: If biometrics fail 3 times or are unavailable, revert to Device Passcode or App PIN.
+
+Transaction Binding: The biometric prompt must explicitly display the Amount and Payee Name (Dynamic Linking) to comply with PSD2/SCA standards.
+
+3.5. Post-Transaction & Notifications
+Push Notification: If the app is backgrounded while the payment is "Pending," a Push Notification must be sent once the final status (Success/Fail) is received.
+
+Receipt: "Share Receipt" button triggers the native OS sharing menu (send via WhatsApp, Email, Slack, etc.).
+
+4. Mobile UI/UX Flow
+Tap "Pay": Bottom navigation.
+
+Select Payee: List view or tap "Add New" (+).
+
+Enter Amount: Large text input.
+
+Smart Logic: If user copies an account number to clipboard outside the app, prompt "Paste from Clipboard?" upon return.
+
+Review (CoP): Screen displays details. CoP status shown clearly.
+
+Authorize: Native OS Biometric prompt appears ("Double click side button" or Fingerprint).
+
+Processing Animation: Full-screen spinner. App must not allow the user to go "Back" during this state.
+
+Success Screen: Green tick animation with "Done" button.
+
+5. Non-Functional Requirements (Mobile Specific)
+5.1. Connectivity & Resilience
+Network Fluctuation: The app must handle switching between WiFi and 4G/5G gracefully without dropping the session.
+
+Timeout: If the backend does not respond within 15 seconds, the app must display a "Status Unknown - Checking" screen rather than a "Failure," and poll for the result.
+
+5.2. Performance
+App Launch to Payment: A returning user must be able to complete a payment to a saved payee in < 4 taps and < 10 seconds total interaction time.
+
+Battery: The module must not excessively drain battery (e.g., disable location services during payment flow).
+
+5.3. Security
+App Switching: If the user minimizes the app during the "Review" phase and returns > 60 seconds later, the flow must reset to the dashboard for security.
+
+Jailbreak/Root Detection: Payment functionality is disabled on rooted/jailbroken devices.
+
+Screen Recording: The app must block OS screen recording/screenshots on the "Payment Details" screen (Android FLAG_SECURE).
+
+6. Edge Cases
+Incoming Call: If a phone call interrupts the flow, the app preserves the state (input data is not lost).
+
+Insufficient Funds: Display a clear error message with a "Add Money" CTA if possible.
+
+Duplicate Payment: If the user attempts to pay the exact same amount to the same payee within 5 minutes, display a warning: "You just sent this payment. Send again?"
