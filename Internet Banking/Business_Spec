@@ -1,0 +1,88 @@
+Business Specification: Faster Payments Module
+Project Name: Instant Transfer Integration (Retail) Version: 1.0 Status: Draft
+
+1. Executive Summary
+The objective is to implement a "Faster Payments" capability allowing retail customers to send single, immediate payments to domestic beneficiaries (Person-to-Person or Person-to-Business) via the web application. The goal is a transaction settlement time of under 15 seconds, available 24/7/365.
+
+2. Scope
+In Scope: Single immediate domestic transfers, New Payee setup, Confirmation of Payee (CoP) checks, Two-Factor Authentication (2FA/SCA), Transaction Receipt generation.
+
+Out of Scope: Standing Orders, Direct Debits, International (SWIFT/SEPA) payments, Bulk corporate payments.
+
+3. Functional Requirements
+3.1. Payment Initiation
+The user must be able to initiate a payment from the "Accounts" dashboard.
+
+Source Account: User selects the debiting account.
+
+Balance Check: System must validate Available Balance >= Payment Amount.
+
+3.2. Payee Management & Input
+The system must allow payment to a New Payee or a Saved Payee.
+
+Required Data Fields: | Field Name | Type | Validation Rule | | :--- | :--- | :--- | | Payee Name | String | Max 35 chars. Alphanumeric. | | Sort Code | Numeric | 6 digits. Must pass Modulus Check. | | Account Number | Numeric | 8 digits. Must pass Modulus Check. | | Payment Reference | String | Max 18 chars. No special chars (creates statement noise). | | Amount | Currency | Min £0.01, Max £10,000 (Daily Cap). |
+
+3.3. Confirmation of Payee (CoP)
+Before submission, the system must query the destination bank to match the Account Name against the Account Number/Sort Code.
+
+Match: Display green checkmark.
+
+Close Match: Display warning ("Name matches partially").
+
+No Match: Display high-level warning ("Account name does not match"). User must explicitly acknowledge risk to proceed.
+
+3.4. Security & Authentication (SCA)
+Upon clicking "Confirm Payment," the user must pass Strong Customer Authentication.
+
+Method: Push notification to mobile app OR SMS One-Time Passcode (OTP).
+
+Session Timeout: If the user takes > 5 minutes on the payment screen, the session times out.
+
+3.5. Transaction Processing
+System deducts funds immediately (ledger update).
+
+System sends ISO 8583/20022 message to the Faster Payments Gateway.
+
+System awaits specific response codes (Success, Pending, Rejected).
+
+4. User Interface (UI) Flow
+Dashboard: Click "Make a Payment."
+
+Select Payee: Choose "New" or select from list.
+
+Input Details: Enter amount and reference.
+
+Review Screen: Summary of payment. (CoP Result shown here).
+
+Challenge: 2FA/Biometric prompt.
+
+Result Screen:
+
+Success: "Payment Sent. Transaction ID: #12345."
+
+Failure: "Payment Declined. Reason: [User Friendly Message]."
+
+5. Non-Functional Requirements (NFRs)
+5.1. Performance & Latency
+End-to-End Latency: The UI must display the Success/Failure result within < 5 seconds of the user entering their 2FA code.
+
+Throughput: System must handle up to 500 concurrent payment requests per second.
+
+5.2. Availability
+Service must be available 99.99% of the time.
+
+Planned downtime must be communicated 48 hours in advance via banner.
+
+5.3. Compliance & Security
+Encryption: All data in transit must use TLS 1.3.
+
+AML: Transactions over a certain threshold (hidden logic) must trigger an asynchronous fraud check.
+
+Audit: All attempts (successful or failed) must be logged in the immutable audit trail.
+
+6. Assumptions & Constraints
+The Core Banking System (ledger) exposes an API for real-time balance holding.
+
+The bank has an existing contract with a Faster Payments Gateway provider (e.g., ClearBank, Form3, or direct Vocalink connection).
+
+The user has a valid mobile number/device registered for 2FA.
